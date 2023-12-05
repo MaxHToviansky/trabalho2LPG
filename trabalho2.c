@@ -179,7 +179,7 @@ int generateEvent(struct Evento *input){
     printf("Informe o Local do evento.\n");
     fgets(&input->local,49,stdin);
 }
-
+//aa
 int main()
 {
     struct Evento *agenda;
