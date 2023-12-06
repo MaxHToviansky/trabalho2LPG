@@ -78,7 +78,7 @@ int shift(struct Evento *list, int pos, int n)
         list[i + 1] = list[i];
 }
 
-int insEvent(struct Evento *list, struct Evento val, int n)
+int insEvent(struct Evento **list, struct Evento val, int n)
 {
     int l = 0, r = n - 1;
     if (n > 0)
@@ -86,7 +86,7 @@ int insEvent(struct Evento *list, struct Evento val, int n)
         while (l < r)
         {
             int mid = (l + r) / 2;
-            int cmp = cmpEvento(&(list[mid]), &val);
+            int cmp = cmpEvento(&((*list)[mid]), &val);
             if (cmp == 1)
             {
                 l = mid + 1;
@@ -102,17 +102,18 @@ int insEvent(struct Evento *list, struct Evento val, int n)
         }
         // l é a posição do novo evento
         l++;
-        if (cmpHora(&list[l-1].fim, &val.inicio) == 1)
+        if (cmpData(&(*list)[l-1].dia, &val.dia)==0 && cmpHora(&(*list)[l-1].fim, &val.inicio) == 1)
         {
             return 2; // 2 -> conflito interseção
         }
     
-        void *p = realloc(list, n + 1);
+        void *p = realloc(*list, (n + 1)*sizeof(struct Evento));
         if(p == NULL)
             return 3;
-        shift(list, l, n + 1);
+        *list = p;
+        shift(*list, l, n + 1);
     }
-    list[l] = val;
+    (*list)[l] = val;
     return 0; // inserção feita com sucesso
 }
 
@@ -124,9 +125,9 @@ void showEventos(struct Evento *list, int n)
     }
     for (int i = 0; i < n; i++)
     {
-        int *v = list->dia.date;
-        int *d = list->inicio.time;
-        int *e = list->fim.time;
+        int *v = list[i].dia.date;
+        int *d = list[i].inicio.time;
+        int *e = list[i].fim.time;
         printf("Data:\n");
         printf("%d/%d/%d (DD/MM/YYYY)\n", v[0], v[1], v[2]);
         printf("Hora De Inicio:\n");
@@ -134,9 +135,9 @@ void showEventos(struct Evento *list, int n)
         printf("Hora Do Fim:\n");
         printf("%d:%d\n", e[0], e[1]);
         printf("Descricao:\n");
-        printf("%s\n", list->descricao);
+        printf("%s\n", list[i].descricao);
         printf("Local:\n");
-        printf("%s\n", list->local);
+        printf("%s\n", list[i].local);
     }
     return;
 }
@@ -186,9 +187,9 @@ int generateEvent(struct Evento *input){
     }
     char s[50], v[50];
     printf("Informe a descricao do evento.\n");
-    scanf("%s['\n']", &input->descricao);
+    scanf("%s['\n']", input->descricao);
     printf("Informe o Local do evento.\n");
-    scanf("%s['\n']", &input->local);
+    scanf("%s['\n']", input->local);
     return 0;
 }
 
@@ -212,7 +213,7 @@ int main()
                 printf("Dados Invalidos!\n");
                 break;
             };
-            error = insEvent(agenda,val,n);
+            error = insEvent(&agenda,val,n);
             switch (error)
             {
             case 1:
