@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // FILE *f = fopen("yourfile.txt", "wt"); <- yourfile tem de estar na mesma pasta.
 // fprintf(f, "varortext%d", val); <- escreve no arquivo f.
@@ -24,12 +25,12 @@ struct Evento
     char descricao[50], local[50];
 };
 
+// LHS (Left Hand Side), RHS (Right Hand Side)
+// LHS > RHS -> 1
+// LHS < RHS -> -1
+// LHS == RHS -> 0
 int cmpData(struct Data *a, struct Data *b)
 {
-    // LHS (Left Hand Side), RHS (Right Hand Side)
-    // LHS > RHS -> 1
-    // LHS < RHS -> -1
-    // LHS == RHS -> 0
     for (int i = 2; i >= 0; i--)
     {
         if (a->date[i] > b->date[i])
@@ -82,7 +83,7 @@ int insEvent(struct Evento *list, struct Evento val, int n)
     int l = 0, r = n - 1;
     if (n > 0)
     {
-        while (l <= r)
+        while (l < r)
         {
             int mid = (l + r) / 2;
             int cmp = cmpEvento(&(list[mid]), &val);
@@ -97,23 +98,30 @@ int insEvent(struct Evento *list, struct Evento val, int n)
             else
             {
                 return 1; // 1 -> conflito inicio
-            }
+            }    
         }
         // l é a posição do novo evento
-
-        if (cmpHora(&list[l - 1].fim, &list[l].inicio) == 1)
+        l++;
+        if (cmpHora(&list[l-1].fim, &val.inicio) == 1)
         {
             return 2; // 2 -> conflito interseção
         }
+    
+        void *p = realloc(list, n + 1);
+        if(p == NULL)
+            return 3;
+        shift(list, l, n + 1);
     }
-    realloc(list, n + 1);
-    shift(list, l, n + 1);
     list[l] = val;
     return 0; // inserção feita com sucesso
 }
 
 void showEventos(struct Evento *list, int n)
 {
+    if(n<1){
+        printf("Nao ha eventos\n");
+        return;
+    }
     for (int i = 0; i < n; i++)
     {
         int *v = list->dia.date;
@@ -125,17 +133,18 @@ void showEventos(struct Evento *list, int n)
         printf("%d:%d\n", d[0], d[1]);
         printf("Hora Do Fim:\n");
         printf("%d:%d\n", e[0], e[1]);
-        printf("Descrição:\n");
-        printf("%s", list->descricao);
+        printf("Descricao:\n");
+        printf("%s\n", list->descricao);
         printf("Local:\n");
-        printf("%s", list->local);
+        printf("%s\n", list->local);
     }
+    return;
 }
 
 int readDate(struct Data *dia){
     int a,b,c;
     scanf("%d %d %d",&a,&b,&c);
-    if(a>9999 || b > 12 || a > 31){
+    if(a>9999 || a<0 || b > 12 || b<1 || a > 31 || a < 1){
         printf("Data invalida!\n");
         return 1;
     }
@@ -148,7 +157,7 @@ int readDate(struct Data *dia){
 int readTime(struct Horario *hora){
     int a,b;
     scanf("%d %d",&a,&b);
-    if(a>24 || b>59){
+    if(a>23 || a < 0 || b>59 || b < 0){
         printf("Horario invalido!\n");
         return 1;
     }
@@ -160,30 +169,34 @@ int readTime(struct Horario *hora){
 int generateEvent(struct Evento *input){
     printf("Informe a data de inicio do evento.(DD/MM/AAAA)\n");
     if(readDate(&input->dia)){
-        // cleanup(); TODO
+
         return 1;
     }
     printf("Informe o horario do inicio do evento. (HH:MM)\n");
     if(readTime(&input->inicio)){
-        // cleanup(); TODO
+
         return 1;
     }
     printf("Informe o horario do fim do evento. (HH:MM)\n");
     if(readTime(&input->fim)){
-        // cleanup(); TODO
         return 1;
     }
-    // comparação inicio fim TODO
-    printf("Informe a descrição do evento.\n");
-    fgets(&input->descricao,49,stdin);
+    if(cmpHora(&input->inicio,&input->fim) == 1){
+        return 1;
+    }
+    char s[50], v[50];
+    printf("Informe a descricao do evento.\n");
+    scanf("%s['\n']", &input->descricao);
     printf("Informe o Local do evento.\n");
-    fgets(&input->local,49,stdin);
+    scanf("%s['\n']", &input->local);
+    return 0;
 }
-//aa
+
 int main()
 {
     struct Evento *agenda;
     int n = 0;
+    agenda = malloc(1 * sizeof(struct Evento));
     // Menu
     int run = 1;
     char status;
@@ -194,7 +207,31 @@ int main()
         {
         case 'i':
             struct Evento val;
-            generateEvent(&val);
+            int error;
+            if(generateEvent(&val)){
+                printf("Dados Invalidos!\n");
+                break;
+            };
+            error = insEvent(agenda,val,n);
+            switch (error)
+            {
+            case 1:
+                printf("Evento nesse horario ja existe!\n");
+                break;
+            case 2:
+                printf("Evento Sobrepoe outro!");
+                break;
+            case 3:
+                printf("Falha na alocacao de memoria!\n");
+                break;
+            case 0:
+                printf("Sucesso!\n");
+                n++;
+                break;
+            }
+            break;
+        case 's':
+            showEventos(agenda,n);
             break;
         case 'e':
             run = 0;
