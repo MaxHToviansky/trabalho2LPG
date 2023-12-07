@@ -50,8 +50,8 @@ int getData(struct Evento **list, int *n)
             fscanf(f, "%d", &(*list)[i].inicio.time[j]);
         for (int j = 0; j < 2; j++)
             fscanf(f, "%d", &(*list)[i].fim.time[j]);
-        fscanf(f, "%s['\n']", &(*list)->descricao);
-        fscanf(f, "%s['\n']", &(*list)->local);
+        fscanf(f, " %[^\n]", &(*list)[i].descricao);
+        fscanf(f, " %[^\n]", &(*list)[i].local);
     }
     *n = tmp;
     fclose(f);
@@ -178,11 +178,11 @@ void showEvent(struct Evento a)
     int *d = a.inicio.time;
     int *e = a.fim.time;
     printf("Data:\n");
-    printf("%d/%d/%d (DD/MM/YYYY)\n", v[0], v[1], v[2]);
+    printf("%.2d/%.2d/%d (DD/MM/YYYY)\n", v[0], v[1], v[2]);
     printf("Hora De Inicio:\n");
-    printf("%d:%d\n", d[0], d[1]);
+    printf("%.2d:%.2d\n", d[0], d[1]);
     printf("Hora Do Fim:\n");
-    printf("%d:%d\n", e[0], e[1]);
+    printf("%.2d:%.2d\n", e[0], e[1]);
     printf("Descricao:\n");
     printf("%s\n", a.descricao);
     printf("Local:\n");
@@ -259,9 +259,9 @@ int generateEvent(struct Evento *input)
     }
     char s[50], v[50];
     printf("Informe a descricao do evento.\n");
-    scanf("%s['\n']", input->descricao);
+    scanf(" %[^\n]", input->descricao);
     printf("Informe o Local do evento.\n");
-    scanf("%s['\n']", input->local);
+    scanf(" %[^\n]", input->local);
     return 0;
 }
 
@@ -352,6 +352,16 @@ int deleteEvent(struct Evento val, struct Evento **list, int n)
     }
 }
 
+void generateMenu(){
+    printf("i -> inserir dados.\n");
+    printf("s -> mostrar todos os eventos.\n");
+    printf("q -> busca por data e hora.\n");
+    printf("d -> deletar evento da agenda.\n");
+    printf("f -> procurar por descricao. \n");
+    printf("m -> gerar menu.\n");
+    printf("e -> sair do programa. \n");
+}
+
 int main()
 {
     struct Evento *agenda;
@@ -368,7 +378,7 @@ int main()
     // Menu
     int run = 1;
     char status;
-
+    generateMenu();
     while (run)
     {
         scanf("%c", &status);
@@ -433,6 +443,15 @@ int main()
                 n--;
             }
 
+            break;
+        case 'f':
+            char v[50];
+            printf("Informe o valor:\n");
+            scanf(" %[^\n]", v);
+            queryDescription(v,agenda,n);
+            break;
+        case 'm':
+            generateMenu();
             break;
         default:
             break;
