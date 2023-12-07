@@ -26,11 +26,63 @@ struct Evento
     char descricao[50], local[50];
 };
 
+int getData(struct Evento **list, int *n)
+{
+    FILE *f = fopen("data.txt", "rt");
+    if (f == NULL)
+        return 1;
+    int tmp;
+    fscanf(f, "%d", &tmp);
+    if(tmp < 1){
+        fclose(f);
+        return 0;
+    }
+
+    void *v = realloc(*list, tmp * sizeof(struct Evento));
+    if (v == NULL)
+        return 2;
+    *list = v;
+    for (int i = 0; i < tmp; i++)
+    {
+        for (int j = 0; j < 3; j++)
+            fscanf(f, "%d", &(*list)[i].dia.date[j]);
+        for (int j = 0; j < 2; j++)
+            fscanf(f, "%d", &(*list)[i].inicio.time[j]);
+        for (int j = 0; j < 2; j++)
+            fscanf(f, "%d", &(*list)[i].fim.time[j]);
+        fscanf(f, "%s['\n']", &(*list)->descricao);
+        fscanf(f, "%s['\n']", &(*list)->local);
+    }
+    *n = tmp;
+    fclose(f);
+    return 0;
+}
+
+int storeData(struct Evento *list, int n)
+{
+    FILE *f = fopen("data.txt", "wt");
+    if (f == NULL)
+        return 1;
+    fprintf(f,"%d",n);
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < 3; j++)
+            fprintf(f, " %d", list[i].dia.date[j]);
+        for (int j = 0; j < 2; j++)
+            fprintf(f, " %d", list[i].inicio.time[j]);
+        for (int j = 0; j < 2; j++)
+            fprintf(f, " %d", list[i].fim.time[j]);
+        fprintf(f, " %s\n", list[i].descricao);
+        fprintf(f, "%s\n", list[i].local);
+    }
+    fclose(f);
+}
+
 // LHS (Left Hand Side), RHS (Right Hand Side)
 // LHS > RHS -> 1
 // LHS < RHS -> -1
 // LHS == RHS -> 0
-int cmpData(struct Data *a, struct Data *b)
+int cmpData(const struct Data *a,const struct Data *b)
 {
     for (int i = 2; i >= 0; i--)
     {
@@ -46,7 +98,7 @@ int cmpData(struct Data *a, struct Data *b)
     return 0;
 }
 
-int cmpHora(struct Horario *a, struct Horario *b)
+int cmpHora(const struct Horario *a,const struct Horario *b)
 {
     for (int i = 0; i < 2; i++)
     {
@@ -65,7 +117,7 @@ int cmpHora(struct Horario *a, struct Horario *b)
 // LHS > RHS -> 1
 // LHS < RHS -> -1
 // LHS == RHS -> 0
-int cmpEvento(struct Evento *a, struct Evento *b)
+int cmpEvento(const struct Evento *a, const struct Evento *b)
 {
     int dateRes = cmpData(&a->dia, &b->dia);
 
@@ -282,7 +334,7 @@ int deleteEvent(struct Evento val, struct Evento **list, int n)
             }
             else
             {
-                if(n==1)
+                if (n == 1)
                     return 0;
                 bshift(*list, mid, n);
                 void *p = realloc(*list, (n - 1) * sizeof(struct Evento));
@@ -293,7 +345,9 @@ int deleteEvent(struct Evento val, struct Evento **list, int n)
             }
         }
         return 1;
-    }else{
+    }
+    else
+    {
         return 1;
     }
 }
@@ -303,10 +357,17 @@ int main()
     struct Evento *agenda;
     int n = 0;
     agenda = malloc(1 * sizeof(struct Evento));
+    int error = getData(&agenda,&n);
+    if(error == 1)
+        printf("Nenhum Arquivo encontrado!\n");
+    else if(error == 2)
+        printf("Falha na alocacao de memoria.\n");
+    else if(error == 0){
+        printf("Dados do arquivo carregados.\n");
+    }
     // Menu
     int run = 1;
     char status;
-    int error;
 
     while (run)
     {
@@ -377,5 +438,12 @@ int main()
             break;
         }
     }
+    error = storeData(agenda,n);
+    if(error == 1){
+        printf("Arquivo nao encontrado, dados perdidos.\n");
+    }else if(error == 0){
+        printf("Dados salvos.\n");
+    }
+    free(agenda);
     return 0;
 }
