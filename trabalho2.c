@@ -218,7 +218,6 @@ void queryDate(struct Data a, struct Evento *list, int n)
     if (n == 0)
     {
         printf("Nenhum valor encontrado.\n");
-        return 0;
     }
     int s = -1, e = -1;
     for (int i = 0; i < n; i++)
@@ -255,33 +254,47 @@ void queryDescription(char v[50], struct Evento *list, int n)
         printf("Nenhum evento encontrado.\n");
 }
 
-void bshift(struct Evento *list, int pos, int n){
-    
+void bshift(struct Evento *list, int pos, int n)
+{
+    for (int i = pos; i < n - 1; i++)
+        list[i] = list[i + 1];
 }
 
-int deleteEvent(struct Data val, struct Evento **list, int n)
+int deleteEvent(struct Evento val, struct Evento **list, int n)
 {
-    int l = 0, r = n-1;
-    while (l <= r)
+    if (n > 1)
     {
-        int mid = (l + r) / 2;
-        int comp = cmpData(&(*list)[mid].dia,&val);
-        if (comp == -1)
+        int l = 0, r = n - 1;
+        while (l <= r)
         {
-            l = mid + 1;
-        }
-        else if (comp == 1)
-        {
-            r = mid;
-            if (r == l)
-                return 1;
+            int mid = (l + r) / 2;
+            int comp = cmpEvento(&(*list)[mid], &val);
+            if (comp == -1)
+            {
+                l = mid + 1;
+            }
+            else if (comp == 1)
+            {
+                r = mid;
+                if (r == l)
+                    return 1;
                 break;
+            }
+            else
+            {
+                if(n==1)
+                    return 0;
+                bshift(*list, mid, n);
+                void *p = realloc(*list, (n - 1) * sizeof(struct Evento));
+                if (p == NULL)
+                    return 2;
+                *list = p;
+                return 0;
+            }
         }
-        else
-        {   
-            
-            break;
-        }
+        return 1;
+    }else{
+        return 1;
     }
 }
 
@@ -293,6 +306,8 @@ int main()
     // Menu
     int run = 1;
     char status;
+    int error;
+
     while (run)
     {
         scanf("%c", &status);
@@ -300,7 +315,7 @@ int main()
         {
         case 'i':
             struct Evento val;
-            int error;
+
             if (generateEvent(&val))
             {
                 printf("Dados Invalidos!\n");
@@ -330,11 +345,33 @@ int main()
         case 'e':
             run = 0;
             break;
-        case 'd':
+        case 'q':
             struct Data input;
             printf("Informe a data que deseja procurar.\n");
-            readDate(&input);
+            if (readDate(&input))
+                break;
             queryDate(input, agenda, n);
+            break;
+        case 'd':
+
+            struct Evento del;
+            printf("Informe a data do evento a ser deletado.\n");
+            if (readDate(&del.dia))
+                break;
+            printf("Informe o horario.");
+            if (readTime(&del.inicio))
+                break;
+            error = deleteEvent(del, &agenda, n);
+            if (error == 1)
+                printf("Evento não encontrado.\n");
+            else if (error == 2)
+                printf("Falha na alocacao de memoria.\n");
+            else if (error == 0)
+            {
+                printf("Sucesso!\n");
+                n--;
+            }
+
             break;
         default:
             break;
