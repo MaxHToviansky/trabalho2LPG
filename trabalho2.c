@@ -6,6 +6,7 @@
 // fprintf(f, "varortext%d", val); <- escreve no arquivo f.
 // fclose(f); <- encerra e registra o arquivo no disco, sem ele o arquivo pode voltar em branco.
 // w -> write, t -> text, r -> read
+// Eu adoraria fazer um binary search polimorfico...
 
 struct Data
 {
@@ -61,9 +62,11 @@ int cmpHora(struct Horario *a, struct Horario *b)
     return 0;
 }
 
+// LHS > RHS -> 1
+// LHS < RHS -> -1
+// LHS == RHS -> 0
 int cmpEvento(struct Evento *a, struct Evento *b)
 {
-    // perguntar rui, por enquanto &() basta
     int dateRes = cmpData(&a->dia, &b->dia);
 
     if (dateRes != 0)
@@ -83,32 +86,33 @@ int insEvent(struct Evento **list, struct Evento val, int n)
     int l = 0, r = n - 1;
     if (n > 0)
     {
-        while (l < r)
+        while (l <= r)
         {
             int mid = (l + r) / 2;
-            int cmp = cmpEvento(&((*list)[mid]), &val);
-            if (cmp == 1)
+            int comp = cmpEvento(&(*list)[mid], &val);
+            if (comp == -1)
             {
                 l = mid + 1;
             }
-            else if (cmp == -1)
+            else if (comp == 1)
             {
                 r = mid;
+                if (r == l)
+                    break;
             }
             else
             {
-                return 1; // 1 -> conflito inicio
-            }    
+                return 1;
+            }
         }
         // l é a posição do novo evento
-        l++;
-        if (cmpData(&(*list)[l-1].dia, &val.dia)==0 && cmpHora(&(*list)[l-1].fim, &val.inicio) == 1)
+        if (l - 1 >= 0 && cmpData(&(*list)[l - 1].dia, &val.dia) == 0 && cmpHora(&(*list)[l - 1].fim, &val.inicio) == 1)
         {
             return 2; // 2 -> conflito interseção
         }
-    
-        void *p = realloc(*list, (n + 1)*sizeof(struct Evento));
-        if(p == NULL)
+
+        void *p = realloc(*list, (n + 1) * sizeof(struct Evento));
+        if (p == NULL)
             return 3;
         *list = p;
         shift(*list, l, n + 1);
@@ -116,36 +120,46 @@ int insEvent(struct Evento **list, struct Evento val, int n)
     (*list)[l] = val;
     return 0; // inserção feita com sucesso
 }
-
-void showEventos(struct Evento *list, int n)
+void showEvent(struct Evento a)
 {
-    if(n<1){
+    int *v = a.dia.date;
+    int *d = a.inicio.time;
+    int *e = a.fim.time;
+    printf("Data:\n");
+    printf("%d/%d/%d (DD/MM/YYYY)\n", v[0], v[1], v[2]);
+    printf("Hora De Inicio:\n");
+    printf("%d:%d\n", d[0], d[1]);
+    printf("Hora Do Fim:\n");
+    printf("%d:%d\n", e[0], e[1]);
+    printf("Descricao:\n");
+    printf("%s\n", a.descricao);
+    printf("Local:\n");
+    printf("%s\n", a.local);
+}
+
+void showEventos(struct Evento *list, int n, int l, int r)
+{
+    if (l < 0 || l > r)
+        return;
+    if (n < 1)
+    {
         printf("Nao ha eventos\n");
         return;
     }
-    for (int i = 0; i < n; i++)
+    for (int i = l; i < n && i <= r; i++)
     {
-        int *v = list[i].dia.date;
-        int *d = list[i].inicio.time;
-        int *e = list[i].fim.time;
-        printf("Data:\n");
-        printf("%d/%d/%d (DD/MM/YYYY)\n", v[0], v[1], v[2]);
-        printf("Hora De Inicio:\n");
-        printf("%d:%d\n", d[0], d[1]);
-        printf("Hora Do Fim:\n");
-        printf("%d:%d\n", e[0], e[1]);
-        printf("Descricao:\n");
-        printf("%s\n", list[i].descricao);
-        printf("Local:\n");
-        printf("%s\n", list[i].local);
+        showEvent(list[i]);
+        printf("\n");
     }
     return;
 }
 
-int readDate(struct Data *dia){
-    int a,b,c;
-    scanf("%d %d %d",&a,&b,&c);
-    if(a>9999 || a<0 || b > 12 || b<1 || a > 31 || a < 1){
+int readDate(struct Data *dia)
+{
+    int a, b, c;
+    scanf("%d %d %d", &a, &b, &c);
+    if (a > 9999 || a < 0 || b > 12 || b < 1 || a > 31 || a < 1)
+    {
         printf("Data invalida!\n");
         return 1;
     }
@@ -155,10 +169,12 @@ int readDate(struct Data *dia){
     return 0;
 }
 
-int readTime(struct Horario *hora){
-    int a,b;
-    scanf("%d %d",&a,&b);
-    if(a>23 || a < 0 || b>59 || b < 0){
+int readTime(struct Horario *hora)
+{
+    int a, b;
+    scanf("%d %d", &a, &b);
+    if (a > 23 || a < 0 || b > 59 || b < 0)
+    {
         printf("Horario invalido!\n");
         return 1;
     }
@@ -167,22 +183,26 @@ int readTime(struct Horario *hora){
     return 0;
 }
 
-int generateEvent(struct Evento *input){
+int generateEvent(struct Evento *input)
+{
     printf("Informe a data de inicio do evento.(DD/MM/AAAA)\n");
-    if(readDate(&input->dia)){
+    if (readDate(&input->dia))
+    {
 
         return 1;
     }
     printf("Informe o horario do inicio do evento. (HH:MM)\n");
-    if(readTime(&input->inicio)){
-
+    if (readTime(&input->inicio))
+    {
         return 1;
     }
     printf("Informe o horario do fim do evento. (HH:MM)\n");
-    if(readTime(&input->fim)){
+    if (readTime(&input->fim))
+    {
         return 1;
     }
-    if(cmpHora(&input->inicio,&input->fim) == 1){
+    if (cmpHora(&input->inicio, &input->fim) == 1)
+    {
         return 1;
     }
     char s[50], v[50];
@@ -191,6 +211,78 @@ int generateEvent(struct Evento *input){
     printf("Informe o Local do evento.\n");
     scanf("%s['\n']", input->local);
     return 0;
+}
+
+void queryDate(struct Data a, struct Evento *list, int n)
+{
+    if (n == 0)
+    {
+        printf("Nenhum valor encontrado.\n");
+        return 0;
+    }
+    int s = -1, e = -1;
+    for (int i = 0; i < n; i++)
+    {
+        if (cmpData(&a, &list[i].dia) == 0)
+        {
+            if (s == -1)
+            {
+                s = i;
+                e = i;
+            }
+            else
+            {
+                e++;
+            }
+        }
+    }
+    if (s != -1)
+        showEventos(list, n, s, e);
+    else
+        printf("Nenhum valor encontrado.\n");
+}
+
+void queryDescription(char v[50], struct Evento *list, int n)
+{
+    int count = 0;
+    for (int i = 0; i < n; i++)
+        if (strcmp(v, list[i].descricao) == 0)
+        {
+            count++;
+            showEvent(list[i]);
+        }
+    if (count == 0)
+        printf("Nenhum evento encontrado.\n");
+}
+
+void bshift(struct Evento *list, int pos, int n){
+    
+}
+
+int deleteEvent(struct Data val, struct Evento **list, int n)
+{
+    int l = 0, r = n-1;
+    while (l <= r)
+    {
+        int mid = (l + r) / 2;
+        int comp = cmpData(&(*list)[mid].dia,&val);
+        if (comp == -1)
+        {
+            l = mid + 1;
+        }
+        else if (comp == 1)
+        {
+            r = mid;
+            if (r == l)
+                return 1;
+                break;
+        }
+        else
+        {   
+            
+            break;
+        }
+    }
 }
 
 int main()
@@ -209,11 +301,12 @@ int main()
         case 'i':
             struct Evento val;
             int error;
-            if(generateEvent(&val)){
+            if (generateEvent(&val))
+            {
                 printf("Dados Invalidos!\n");
                 break;
             };
-            error = insEvent(&agenda,val,n);
+            error = insEvent(&agenda, val, n);
             switch (error)
             {
             case 1:
@@ -232,10 +325,16 @@ int main()
             }
             break;
         case 's':
-            showEventos(agenda,n);
+            showEventos(agenda, n, 0, n);
             break;
         case 'e':
             run = 0;
+            break;
+        case 'd':
+            struct Data input;
+            printf("Informe a data que deseja procurar.\n");
+            readDate(&input);
+            queryDate(input, agenda, n);
             break;
         default:
             break;
